@@ -49,7 +49,16 @@ const state = {
   saved: new Set(store.get("endsems:saved", [])),
   expanded: new Set(),
   lastView: null,
+  pyq: { section: "all", exam: "all" },
 };
+const EXAMS = [
+  { id: "Cycle Test 1", name: "CT 1" },
+  { id: "Cycle Test 2", name: "CT 2" },
+  { id: "Mid-sem", name: "Mid-sem" },
+  { id: "End-sem", name: "End-sem" },
+];
+const sectionName = (s) => (s && s.length === 1 ? `Section ${s}` : "Section not stated");
+const sectionRank = (s) => (s === "A" ? 0 : s === "B" ? 1 : 2);
 
 /* ---------- helpers ---------- */
 
@@ -109,7 +118,9 @@ function hay(...parts) { return parts.flat().filter(Boolean).join(" ").toLowerCa
 function fileMatches(f) {
   const w = words();
   if (!w.length) return true;
-  const text = hay(f.title, f.label, f.tags || [], f.subject.name, f.subject.short, f.type.name, f.type.one);
+  const exam = EXAMS.find((e) => e.id === f.exam);
+  const text = hay(f.title, f.label, f.tags || [], f.subject.name, f.subject.short, f.type.name, f.type.one,
+    f.year ? String(f.year) : "", f.section ? sectionName(f.section) : "", f.exam || "", exam ? [exam.name, exam.name.replace(" ", "")] : "");
   return w.every((x) => text.includes(x));
 }
 function subjectMatches(s) {
@@ -174,7 +185,7 @@ function fileCard(f, { showSubject = true } = {}) {
   const bits = [];
   if (f.pages) bits.push(plural(f.pages, "page", "pages"));
   bits.push(formatSize(f.size));
-  const meta = [showSubject ? f.subject.short || f.subject.name : null, f.label || null].filter(Boolean).join(" · ") || `Updated ${formatDate(f.updated)}`;
+  const meta = [showSubject ? f.subject.short || f.subject.name : null, f.label || null, f.inferred ? "section inferred" : null].filter(Boolean).join(" · ") || `Updated ${formatDate(f.updated)}`;
   return `<li class="card" style="--c:${f.type.color}">
     <div class="card-head">
       <h3 class="card-title"><a class="card-link" href="${fileUrl(f.file)}" target="_blank" rel="noopener">${esc(f.title)}</a></h3>
@@ -257,6 +268,34 @@ function renderSaved() {
   app.innerHTML = html;
 }
 
+function chipRow(label, key, options) {
+  if (options.length < 2) return "";
+  const cur = state.pyq[key];
+  const all = [{ id: "all", name: key === "section" ? "All sections" : "All exams" }, ...options];
+  return `<div class="chips" role="group" aria-label="${esc(label)}">${all.map((o) =>
+    `<button class="chip" type="button" data-pyq="${key}" data-val="${esc(o.id)}" aria-pressed="${cur === o.id}">${esc(o.name)}</button>`).join("")}</div>`;
+}
+
+function pyqBlock(files) {
+  const secIds = [...new Set(files.map((f) => f.section || "-"))].sort((a, b) => sectionRank(a) - sectionRank(b));
+  const exIds = EXAMS.filter((e) => files.some((f) => f.exam === e.id));
+  if (!secIds.includes(state.pyq.section)) state.pyq.section = "all";
+  if (!exIds.some((e) => e.id === state.pyq.exam)) state.pyq.exam = "all";
+  const list = files.filter((f) =>
+    (state.pyq.section === "all" || (f.section || "-") === state.pyq.section) &&
+    (state.pyq.exam === "all" || f.exam === state.pyq.exam));
+  const chips = chipRow("Filter by section", "section", secIds.map((id) => ({ id, name: id === "-" ? "Not stated" : sectionName(id) }))) +
+    chipRow("Filter by exam", "exam", exIds);
+  if (!list.length) return chips + emptyBox(["No papers match these choices."]);
+  const years = [...new Set(list.map((f) => f.year || 0))].sort((a, b) => b - a);
+  return chips + years.map((y) => {
+    const group = list.filter((f) => (f.year || 0) === y)
+      .sort((a, b) => sectionRank(a.section) - sectionRank(b.section) || (a.order || 9) - (b.order || 9) || a.title.localeCompare(b.title));
+    return `<h3 class="year-head">${y ? esc(String(y)) : "Other"}<span>${plural(group.length, "paper", "papers")}</span></h3>
+      <ul class="grid">${group.map((x) => fileCard(x, { showSubject: false })).join("")}</ul>`;
+  }).join("");
+}
+
 function renderSubject(s) {
   const f = filesOf(s.id);
   const total = TYPES.reduce((n, t) => n + f[t.id].length, 0);
@@ -267,11 +306,13 @@ function renderSubject(s) {
     const list = sortFiles(f[t.id].map((x, i) => ({ ...x, order: i })).filter(fileMatches));
     const pending = filtering ? [] : t.slots.slice(f[t.id].length);
     if (filtering && !list.length) return "";
+    const grouped = t.id === "pyq-solutions" && list.some((x) => x.year);
     const items = list.map((x) => fileCard(x, { showSubject: false })).join("") + pending.map((n) => pendingCard(n, t)).join("");
+    const body = grouped ? pyqBlock(list) : `<ul class="grid">${items}</ul>`;
     return `<section class="section" aria-labelledby="h-${t.id}">
-      <div class="section-head"><h2 id="h-${t.id}">${esc(t.name)}</h2><span class="n">${plural(f[t.id].length, "file", "files")}</span></div>
-      <p class="section-desc">${esc(t.desc)}</p>
-      <ul class="grid">${items}</ul>
+      <div class="section-head"><h2 id="h-${t.id}">${esc(t.name)}</h2><span class="n">${plural(f[t.id].length, grouped ? "paper" : "file", grouped ? "papers" : "files")}</span></div>
+      <p class="section-desc">${esc(grouped ? "Worked solutions to previous-year papers, grouped by year. Filter by section or exam." : t.desc)}</p>
+      ${body}
     </section>`;
   }).join("");
 
@@ -403,7 +444,7 @@ function renderMissing(id) {
 /* ---------- events ---------- */
 
 document.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-save],[data-expand],[data-clear],[data-filter],[data-clear-filters],[data-sort]");
+  const t = e.target.closest("[data-save],[data-expand],[data-clear],[data-filter],[data-clear-filters],[data-sort],[data-pyq]");
   if (!t) {
     if (!e.target.closest(".menu-wrap")) closeMenus();
     return;
@@ -431,6 +472,11 @@ document.addEventListener("click", (e) => {
   } else if (t.dataset.clearFilters) {
     state[t.dataset.clearFilters].clear();
     render();
+  } else if (t.dataset.pyq) {
+    state.pyq[t.dataset.pyq] = t.dataset.val;
+    const y = window.scrollY;
+    render();
+    window.scrollTo(0, y);
   } else if (t.dataset.sort) {
     state.sort = t.dataset.sort;
     store.set("endsems:sort", state.sort);

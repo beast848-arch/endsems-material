@@ -446,6 +446,33 @@ main:focus { outline: none; }
 .section-head .n { color: var(--ink-2); font-size: 15px; white-space: nowrap; }
 .section-desc { margin: 0 0 20px; color: var(--ink-2); font-size: 15px; max-width: 70ch; }
 
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.chip {
+  min-height: 36px;
+  padding: 3px 14px 4px;
+  border: 1.5px solid var(--ink-2);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.chip:hover { background: var(--soft); }
+.chip[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: var(--paper); }
+.year-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 28px 0 14px;
+  padding-bottom: 6px;
+  border-bottom: 1.5px solid var(--navy);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.year-head span { font-size: 14.5px; font-weight: 400; color: var(--ink-2); }
+
 .empty {
   padding: 28px 24px;
   border: 2px dashed var(--ink-2);

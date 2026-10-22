@@ -109,6 +109,9 @@ def main():
                         item["pages"] = int(pages)
                     if meta.get("label"):
                         item["label"] = str(meta["label"])
+                    for k in ("year", "section", "exam", "order", "inferred"):
+                        if k in meta:
+                            item[k] = meta[k]
                     tags = meta.get("tags")
                     if isinstance(tags, list):
                         item["tags"] = [str(t) for t in tags if str(t).strip()]
