@@ -1,0 +1,17 @@
+{
+  "site": {
+    "title": "Endsems material",
+    "subtitle": "Civil engineering, end-semester exams",
+    "repo": "https://github.com/beast848-arch/endsems-material"
+  },
+  "subjects": [
+    { "id": "concrete-technology", "name": "Concrete Technology and Construction" },
+    { "id": "hydraulics-fluid-machinery", "name": "Hydraulics and Fluid Machinery" },
+    { "id": "surveying", "name": "Surveying" },
+    { "id": "mechanics-of-solids", "name": "Mechanics of Solids" },
+    { "id": "survey-laboratory", "name": "Survey Laboratory" },
+    { "id": "building-planning-drawing", "name": "Building Planning and Drawing" },
+    { "id": "construction-techniques-equipment", "name": "Construction Techniques and Equipment" },
+    { "id": "engineering-geology", "name": "Engineering Geology" }
+  ]
+}
