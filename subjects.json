@@ -1,17 +1,17 @@
 {
   "site": {
-    "title": "Endsems material",
+    "title": "Endsems Material",
     "subtitle": "Civil engineering, end-semester exams",
     "repo": "https://github.com/beast848-arch/endsems-material"
   },
   "subjects": [
-    { "id": "concrete-technology", "name": "Concrete Technology and Construction" },
-    { "id": "hydraulics-fluid-machinery", "name": "Hydraulics and Fluid Machinery" },
-    { "id": "surveying", "name": "Surveying" },
-    { "id": "mechanics-of-solids", "name": "Mechanics of Solids" },
-    { "id": "survey-laboratory", "name": "Survey Laboratory" },
-    { "id": "building-planning-drawing", "name": "Building Planning and Drawing" },
-    { "id": "construction-techniques-equipment", "name": "Construction Techniques and Equipment" },
-    { "id": "engineering-geology", "name": "Engineering Geology" }
+    { "id": "concrete-technology", "name": "Concrete Technology and Construction", "short": "Concrete Technology", "kind": "Theory" },
+    { "id": "hydraulics-fluid-machinery", "name": "Hydraulics and Fluid Machinery", "short": "Hydraulics", "kind": "Theory" },
+    { "id": "surveying", "name": "Surveying", "short": "Surveying", "kind": "Theory" },
+    { "id": "mechanics-of-solids", "name": "Mechanics of Solids", "short": "Mechanics of Solids", "kind": "Theory" },
+    { "id": "survey-laboratory", "name": "Survey Laboratory", "short": "Survey Lab", "kind": "Lab" },
+    { "id": "building-planning-drawing", "name": "Building Planning and Drawing", "short": "Building Planning", "kind": "Drawing" },
+    { "id": "construction-techniques-equipment", "name": "Construction Techniques and Equipment", "short": "Construction Techniques", "kind": "Theory" },
+    { "id": "engineering-geology", "name": "Engineering Geology", "short": "Engineering Geology", "kind": "Theory" }
   ]
 }

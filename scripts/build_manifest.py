@@ -3,6 +3,11 @@
 
 The site reads manifest.json to know which files exist. GitHub Actions runs
 this on every push, so adding a PDF to the right folder is all it takes.
+
+Optional: put a JSON file with the same name next to a PDF
+(unit-1-notes.pdf + unit-1-notes.json) to set how it shows on the site:
+  {"title": "...", "label": "Module 1", "tags": ["Topic", ...], "pages": 12}
+
 Run it locally with:  python3 scripts/build_manifest.py
 """
 import datetime
@@ -38,6 +43,20 @@ def title_from(filename):
     return " ".join(out) or filename
 
 
+def page_count(path):
+    try:
+        from pypdf import PdfReader  # optional
+        return len(PdfReader(str(path)).pages)
+    except Exception:
+        pass
+    try:
+        data = path.read_bytes()
+        n = len(re.findall(rb"/Type\s*/Page(?![s\w])", data))
+        return n or None
+    except OSError:
+        return None
+
+
 def last_updated(path):
     try:
         out = subprocess.run(
@@ -50,6 +69,18 @@ def last_updated(path):
         pass
     mtime = path.stat().st_mtime
     return datetime.datetime.fromtimestamp(mtime, datetime.timezone.utc).isoformat(timespec="seconds")
+
+
+def read_sidecar(pdf):
+    side = pdf.with_suffix(".json")
+    if side.is_file():
+        try:
+            data = json.loads(side.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return data
+        except (ValueError, OSError):
+            print(f"warning: could not read {side.relative_to(ROOT)}")
+    return {}
 
 
 def main():
@@ -66,12 +97,22 @@ def main():
             if folder.is_dir():
                 pdfs = [p for p in folder.iterdir() if p.is_file() and p.suffix.lower() == ".pdf"]
                 for p in sorted(pdfs, key=lambda p: natural_key(p.name)):
-                    files.append({
-                        "title": title_from(p.name),
+                    meta = read_sidecar(p)
+                    item = {
+                        "title": str(meta.get("title") or title_from(p.name)),
                         "file": p.relative_to(ROOT).as_posix(),
                         "size": p.stat().st_size,
                         "updated": last_updated(p),
-                    })
+                    }
+                    pages = meta.get("pages") or page_count(p)
+                    if pages:
+                        item["pages"] = int(pages)
+                    if meta.get("label"):
+                        item["label"] = str(meta["label"])
+                    tags = meta.get("tags")
+                    if isinstance(tags, list):
+                        item["tags"] = [str(t) for t in tags if str(t).strip()]
+                    files.append(item)
             entry[cat] = files
         manifest["subjects"][subject["id"]] = entry
 

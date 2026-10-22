@@ -41,7 +41,15 @@ The file name becomes the title on the site, so name files the way you want them
 | `unit-1-notes.pdf` | Unit 1 notes |
 | `model-paper-2.pdf` | Model paper 2 |
 
-Files are listed in name order, so number them if order matters. Only `.pdf` files are shown. GitHub's upload limit through the browser is 25 MB per file.
+Files are listed in name order, so number them if order matters.
+
+To control how a file shows on the site, add a JSON file with the same name next to the PDF (for example `module-2-aggregates.json` next to `module-2-aggregates.pdf`):
+
+```json
+{ "title": "Aggregates", "label": "Module 2", "tags": ["Grading", "Fineness modulus"], "pages": 17 }
+```
+
+All fields are optional. Without it, the title comes from the file name. Only `.pdf` files are shown. GitHub's upload limit through the browser is 25 MB per file.
 
 ## Adding or renaming a subject
 

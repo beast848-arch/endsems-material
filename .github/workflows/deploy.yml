@@ -26,12 +26,15 @@ jobs:
           fetch-depth: 0  # full history so file dates are right
 
       - name: Build file list
-        run: python3 scripts/build_manifest.py
+        run: |
+          python3 -m pip install --quiet --break-system-packages pypdf || true
+          python3 scripts/build_manifest.py
 
       - name: Collect site files
         run: |
           mkdir _site
           cp -r index.html assets subjects.json manifest.json materials _site/
+          find _site/materials -name "*.json" -delete
 
       - uses: actions/configure-pages@v6
 

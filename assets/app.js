@@ -1,46 +1,67 @@
-/* Endsems material: renders the subject list and each subject's files
-   from subjects.json (hand-edited) and manifest.json (built from materials/). */
+/* Endsems Material
+   Reads subjects.json (hand-edited) and manifest.json (built from materials/)
+   and renders four views: Subjects, Files, Recent, Saved, plus a page per subject. */
 
-const CATEGORIES = [
+const TYPES = [
   {
-    id: "pyq-solutions",
-    name: "PYQ solutions",
-    short: "PYQ solutions",
+    id: "notes", name: "Notes", one: "Notes", badge: "Notes", color: "var(--green)", lower: "notes",
+    desc: "Notes made from the lecture slides, one PDF per module or unit.",
+    slots: ["Notes"],
+  },
+  {
+    id: "pyq-solutions", name: "PYQ solutions", one: "PYQ solution", badge: "PYQ", color: "var(--navy)", lower: "PYQ solutions",
     desc: "Worked solutions to the previous-year question papers.",
     slots: ["PYQ solutions"],
   },
   {
-    id: "notes",
-    name: "Notes",
-    short: "notes",
-    desc: "Unit-wise notes made from the lecture notes and slides.",
-    slots: ["Notes"],
-  },
-  {
-    id: "model-papers",
-    name: "Model papers",
-    short: "model papers",
+    id: "model-papers", name: "Model papers", one: "Model paper", badge: "Model paper", color: "var(--olive)", lower: "model papers",
     desc: "Practice papers in the exam pattern, weighted toward topics that keep coming up in the PYQs.",
     slots: ["Model paper 1", "Model paper 2", "Model paper 3"],
   },
 ];
-const TOTAL = CATEGORIES.reduce((n, c) => n + c.slots.length, 0);
+const KIND_COLOR = { Theory: "var(--brown)", Lab: "var(--teal)", Drawing: "var(--plum)" };
+const SORTS = [
+  { id: "default", name: "Course order" },
+  { id: "az", name: "A to Z" },
+  { id: "newest", name: "Newest first" },
+];
+const TAGS_SHOWN = 3;
 
-const app = document.getElementById("app");
-const titleBlock = document.getElementById("title-block");
-let data = null;
-let firstRender = true;
+const $ = (id) => document.getElementById(id);
+const app = $("app");
+const qInput = $("q");
+
+const store = {
+  get(key, fallback) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+  },
+};
+
+const state = {
+  data: null,
+  query: "",
+  types: new Set(),
+  kinds: new Set(),
+  sort: "default",
+  saved: new Set(store.get("endsems:saved", [])),
+  expanded: new Set(),
+  lastView: null,
+};
+
+/* ---------- helpers ---------- */
 
 const esc = (s) =>
-  String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
+  String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fileUrl = (path) => path.split("/").map(encodeURIComponent).join("/");
 
 function formatSize(bytes) {
+  if (!bytes && bytes !== 0) return "";
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
-
 function formatDate(iso, withYear = false) {
   const d = new Date(iso);
   if (isNaN(d)) return "";
@@ -48,188 +69,400 @@ function formatDate(iso, withYear = false) {
   if (withYear || d.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
   return d.toLocaleDateString("en-IN", opts);
 }
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
-function filesFor(subjectId) {
-  const s = (data.manifest.subjects && data.manifest.subjects[subjectId]) || {};
+const ICON = {
+  bookmark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"/></svg>',
+  files: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M9.5 12h6M9.5 15.5h6"/></svg>',
+  pages: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3.5h9.5v14H8z"/><path d="M5.5 6.5v14h9.5"/></svg>',
+  back: '<svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+  check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+};
+
+/* ---------- data ---------- */
+
+function subjects() { return state.data.config.subjects; }
+function subjectById(id) { return subjects().find((s) => s.id === id); }
+function filesOf(subjectId) {
+  const s = state.data.manifest.subjects?.[subjectId] || {};
   const out = {};
-  for (const c of CATEGORIES) out[c.id] = s[c.id] || [];
+  for (const t of TYPES) out[t.id] = (s[t.id] || []).map((f) => ({ ...f, type: t, subject: subjectById(subjectId), key: "f:" + f.file }));
   return out;
 }
-
-function readyCount(subjectId) {
-  const f = filesFor(subjectId);
-  return CATEGORIES.reduce((n, c) => n + Math.min(f[c.id].length, c.slots.length), 0);
+function allFiles() {
+  const out = [];
+  subjects().forEach((s, si) => {
+    const f = filesOf(s.id);
+    TYPES.forEach((t) => f[t.id].forEach((file, i) => out.push({ ...file, order: si * 10000 + TYPES.indexOf(t) * 1000 + i })));
+  });
+  return out;
+}
+function latest(subjectId) {
+  const f = filesOf(subjectId);
+  let best = null;
+  for (const t of TYPES) for (const file of f[t.id]) if (!best || new Date(file.updated) > new Date(best)) best = file.updated;
+  return best;
 }
 
-function rod(filled, total = TOTAL, delayBase = 0) {
-  const band = 18, h = 14, tip = 10;
-  const w = tip + total * band + 2;
-  let s = `<svg class="rod" viewBox="0 0 ${w} ${h + 2}" width="${w}" height="${h + 2}" aria-hidden="true">`;
-  s += `<path class="tip" d="M1 ${1 + h / 2} L${tip + 1} 1 V${h + 1} Z"/>`;
-  for (let i = 0; i < total; i++) {
-    const on = i < filled;
-    s += `<rect class="band${on ? " on" : ""}" x="${tip + 1 + i * band}" y="1" width="${band}" height="${h}" style="--d:${delayBase + i * 70}"/>`;
-  }
-  return s + "</svg>";
+function words() { return state.query.toLowerCase().split(/\s+/).filter(Boolean); }
+function hay(...parts) { return parts.flat().filter(Boolean).join(" ").toLowerCase(); }
+function fileMatches(f) {
+  const w = words();
+  if (!w.length) return true;
+  const text = hay(f.title, f.label, f.tags || [], f.subject.name, f.subject.short, f.type.name, f.type.one);
+  return w.every((x) => text.includes(x));
+}
+function subjectMatches(s) {
+  const w = words();
+  if (!w.length) return true;
+  const f = filesOf(s.id);
+  const text = hay(s.name, s.short, s.kind, TYPES.map((t) => f[t.id].map((x) => [x.title, x.label, x.tags || []])));
+  return w.every((x) => text.includes(x));
 }
 
-/* ---------- Views ---------- */
-
-function renderHome() {
-  const { site, subjects } = data.config;
-  document.title = site.title;
-
-  const rows = subjects
-    .map((s, i) => {
-      const n = readyCount(s.id);
-      return `<li><a href="#/${esc(s.id)}">
-        <span class="name">${esc(s.name)}</span>
-        ${rod(n, TOTAL, i * 60)}
-        <span class="count">${n} of ${TOTAL}</span>
-        <span class="go" aria-hidden="true">›</span>
-      </a></li>`;
-    })
-    .join("");
-
-  const recent = [];
-  for (const s of subjects) {
-    const f = filesFor(s.id);
-    for (const c of CATEGORIES) for (const file of f[c.id]) recent.push({ ...file, subject: s, cat: c });
-  }
-  recent.sort((a, b) => new Date(b.updated) - new Date(a.updated));
-
-  const recentHtml = recent.length
-    ? `<ul class="recent">${recent
-        .slice(0, 6)
-        .map(
-          (r) => `<li>
-            <span><a href="${fileUrl(r.file)}" target="_blank" rel="noopener">${esc(r.title)}</a>
-            <span class="where">${esc(r.subject.name)}, ${esc(r.cat.short)}</span></span>
-            <time datetime="${esc(r.updated)}">${formatDate(r.updated)}</time>
-          </li>`
-        )
-        .join("")}</ul>`
-    : `<p class="empty-note">Nothing uploaded yet. New files show up here as soon as they're added.</p>`;
-
-  app.innerHTML = `
-    <header class="hero">
-      <h1>${esc(site.title)}</h1>
-      <p>PYQ solutions, notes and three model papers for each of our ${subjects.length} subjects. Pick a subject to open its files.</p>
-    </header>
-
-    <section class="block" aria-labelledby="subjects-h">
-      <h2 id="subjects-h">Subjects</h2>
-      <div class="register-head" aria-hidden="true"><span>Subject</span><span>Files ready</span></div>
-      <ul class="register">${rows}</ul>
-    </section>
-
-    <section class="block" aria-labelledby="recent-h">
-      <h2 id="recent-h">Recently updated</h2>
-      ${recentHtml}
-    </section>`;
+function sortFiles(list) {
+  const l = [...list];
+  if (state.sort === "az") l.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true }));
+  else if (state.sort === "newest") l.sort((a, b) => new Date(b.updated) - new Date(a.updated) || a.order - b.order);
+  else l.sort((a, b) => a.order - b.order);
+  return l;
 }
 
-function fileRow(file) {
-  const url = fileUrl(file.file);
-  const name = file.file.split("/").pop();
-  return `<li class="file">
-    <div>
-      <div class="title">${esc(file.title)}</div>
-      <div class="meta"><span>${formatSize(file.size)}</span><span>Updated ${formatDate(file.updated)}</span></div>
+/* ---------- saved ---------- */
+
+function toggleSaved(key) {
+  state.saved.has(key) ? state.saved.delete(key) : state.saved.add(key);
+  store.set("endsems:saved", [...state.saved]);
+}
+
+/* ---------- cards ---------- */
+
+function saveButton(key, label) {
+  const on = state.saved.has(key);
+  return `<button class="save" type="button" data-save="${esc(key)}" aria-pressed="${on}" aria-label="${on ? "Remove" : "Save"} ${esc(label)}">${ICON.bookmark}</button>`;
+}
+
+function tagList(key, tags, extraClass = "") {
+  if (!tags.length) return "";
+  const open = state.expanded.has(key);
+  const shown = open ? tags : tags.slice(0, TAGS_SHOWN);
+  const rest = tags.length - shown.length;
+  return `<ul class="tags ${extraClass}">${shown.map((t) => (typeof t === "string" ? `<li>${esc(t)}</li>` : `<li class="${t.cls || ""}">${esc(t.text)}</li>`)).join("")}${
+    rest > 0 ? `<li class="more"><button type="button" data-expand="${esc(key)}" aria-label="Show ${rest} more topics">+${rest}</button></li>` : ""
+  }</ul>`;
+}
+
+function subjectCard(s) {
+  const f = filesOf(s.id);
+  const total = TYPES.reduce((n, t) => n + f[t.id].length, 0);
+  const when = latest(s.id);
+  const meta = total ? `${esc(s.kind)} · updated ${formatDate(when)}` : `${esc(s.kind)} · nothing added yet`;
+  const tags = TYPES.map((t) => ({ text: `${t.name} ${f[t.id].length}`, cls: f[t.id].length ? "" : "zero" }));
+  return `<li class="card" style="--c:${KIND_COLOR[s.kind] || "var(--brown)"}">
+    <div class="card-head">
+      <h3 class="card-title"><a class="card-link" href="#/s/${esc(s.id)}">${esc(s.name)}</a></h3>
+      <span class="badge">${esc(s.kind)}</span>
+      ${saveButton("s:" + s.id, s.name)}
     </div>
-    <div class="actions">
-      <a class="btn primary" href="${url}" target="_blank" rel="noopener">Open</a>
-      <a class="btn" href="${url}" download="${esc(name)}">Download</a>
-    </div>
+    <p class="meta">${meta}</p>
+    <p class="links">${ICON.files}${plural(total, "file", "files")}</p>
+    ${tagList("s:" + s.id, tags)}
   </li>`;
 }
 
-function pendingRow(slotName) {
-  return `<li class="file pending">
-    <div class="title">${esc(slotName)}</div>
-    <div class="meta">Not added yet</div>
+function fileCard(f, { showSubject = true } = {}) {
+  const bits = [];
+  if (f.pages) bits.push(plural(f.pages, "page", "pages"));
+  bits.push(formatSize(f.size));
+  const meta = [showSubject ? f.subject.short || f.subject.name : null, f.label || null].filter(Boolean).join(" · ") || `Updated ${formatDate(f.updated)}`;
+  return `<li class="card" style="--c:${f.type.color}">
+    <div class="card-head">
+      <h3 class="card-title"><a class="card-link" href="${fileUrl(f.file)}" target="_blank" rel="noopener">${esc(f.title)}</a></h3>
+      <span class="badge">${esc(f.type.badge)}</span>
+      ${saveButton(f.key, f.title)}
+    </div>
+    <p class="meta">${esc(meta)}</p>
+    <p class="links">${ICON.pages}${esc(bits.join(" · "))}</p>
+    ${tagList(f.key, f.tags || [])}
   </li>`;
 }
 
-function renderSubject(subject) {
-  document.title = `${subject.name} · ${data.config.site.title}`;
-  const f = filesFor(subject.id);
-  const n = readyCount(subject.id);
+function pendingCard(name, type) {
+  return `<li class="card pending" style="--c:${type.color}">
+    <div class="card-head"><h3 class="card-title">${esc(name)}</h3></div>
+    <p class="meta">Not added yet</p>
+  </li>`;
+}
 
-  const sections = CATEGORIES.map((c) => {
-    const files = f[c.id];
-    const have = Math.min(files.length, c.slots.length);
-    const missing = c.slots.slice(files.length);
-    return `<section class="category" aria-labelledby="h-${c.id}">
-      <div class="cat-head">
-        <h2 id="h-${c.id}">${esc(c.name)}</h2>
-        <span class="count">${have} of ${c.slots.length}</span>
-      </div>
-      <p class="cat-desc">${esc(c.desc)}</p>
-      <ul class="files">
-        ${files.map(fileRow).join("")}
-        ${missing.map(pendingRow).join("")}
-      </ul>
+/* ---------- views ---------- */
+
+function noteLine(text) {
+  const clear = state.query || state.types.size || state.kinds.size
+    ? `<button type="button" data-clear>Clear search and filters</button>` : "";
+  return `<div class="view-note"><span>${text}</span>${clear}</div>`;
+}
+
+function emptyBox(lines) {
+  return `<div class="empty">${lines.map((l) => `<p>${l}</p>`).join("")}</div>`;
+}
+
+function noMatch() {
+  return emptyBox([
+    `Nothing matches${state.query ? ` “${esc(state.query)}”` : " these filters"}.`,
+    `<button type="button" data-clear>Clear search and filters</button>`,
+  ]);
+}
+
+function renderSubjects() {
+  let list = subjects().filter((s) => (!state.kinds.size || state.kinds.has(s.kind)) && subjectMatches(s));
+  if (state.sort === "az") list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+  if (state.sort === "newest") list = [...list].sort((a, b) => new Date(latest(b.id) || 0) - new Date(latest(a.id) || 0));
+  const total = allFiles().length;
+  app.innerHTML =
+    noteLine(`${plural(list.length, "subject", "subjects")} · ${plural(total, "file", "files")} in total`) +
+    (list.length ? `<ul class="grid">${list.map(subjectCard).join("")}</ul>` : noMatch());
+}
+
+function renderFileList(view) {
+  let list = allFiles().filter((f) => (!state.types.size || state.types.has(f.type.id)) && fileMatches(f));
+  if (view === "recent") {
+    list = [...list].sort((a, b) => new Date(b.updated) - new Date(a.updated)).slice(0, 24);
+  } else list = sortFiles(list);
+
+  const any = allFiles().length;
+  if (!any) {
+    app.innerHTML = emptyBox([
+      "No files yet.",
+      "Notes, PYQ solutions and model papers show up here as soon as they're added to the repository.",
+    ]);
+    return;
+  }
+  const label = view === "recent" ? "Most recently added or updated" : plural(list.length, "file", "files");
+  app.innerHTML = noteLine(label) + (list.length ? `<ul class="grid">${list.map((f) => fileCard(f)).join("")}</ul>` : noMatch());
+}
+
+function renderSaved() {
+  const subs = subjects().filter((s) => state.saved.has("s:" + s.id) && subjectMatches(s));
+  const files = sortFiles(allFiles().filter((f) => state.saved.has(f.key) && (!state.types.size || state.types.has(f.type.id)) && fileMatches(f)));
+  if (!subs.length && !files.length) {
+    const nothingSaved = ![...state.saved].length;
+    app.innerHTML = nothingSaved
+      ? emptyBox(["Nothing saved yet.", "Tap the bookmark on any subject or file to keep it here. Saved items stay on this device."])
+      : noMatch();
+    return;
+  }
+  let html = noteLine(`${plural(subs.length + files.length, "saved item", "saved items")} on this device`);
+  if (subs.length) html += `<section class="section" style="margin-top:8px"><div class="section-head"><h2>Subjects</h2></div><ul class="grid">${subs.map(subjectCard).join("")}</ul></section>`;
+  if (files.length) html += `<section class="section"><div class="section-head"><h2>Files</h2></div><ul class="grid">${files.map((f) => fileCard(f)).join("")}</ul></section>`;
+  app.innerHTML = html;
+}
+
+function renderSubject(s) {
+  const f = filesOf(s.id);
+  const total = TYPES.reduce((n, t) => n + f[t.id].length, 0);
+  const filtering = !!(state.query || state.types.size);
+  const counts = TYPES.map((t) => `${f[t.id].length} ${t.lower}`).join(" · ");
+
+  const sections = TYPES.filter((t) => !state.types.size || state.types.has(t.id)).map((t) => {
+    const list = sortFiles(f[t.id].map((x, i) => ({ ...x, order: i })).filter(fileMatches));
+    const pending = filtering ? [] : t.slots.slice(f[t.id].length);
+    if (filtering && !list.length) return "";
+    const items = list.map((x) => fileCard(x, { showSubject: false })).join("") + pending.map((n) => pendingCard(n, t)).join("");
+    return `<section class="section" aria-labelledby="h-${t.id}">
+      <div class="section-head"><h2 id="h-${t.id}">${esc(t.name)}</h2><span class="n">${plural(f[t.id].length, "file", "files")}</span></div>
+      <p class="section-desc">${esc(t.desc)}</p>
+      <ul class="grid">${items}</ul>
     </section>`;
   }).join("");
 
-  const summary =
-    n === 0 ? "Nothing added yet" : n === TOTAL ? `All ${TOTAL} files ready` : `${n} of ${TOTAL} files ready`;
-
   app.innerHTML = `
-    <a class="back" href="#/"><span aria-hidden="true">‹</span> All subjects</a>
-    <header class="subject-head">
-      <h1>${esc(subject.name)}</h1>
-      <div class="summary">${rod(n)}<span>${summary}</span></div>
+    <a class="back" href="#/">${ICON.back} All subjects</a>
+    <header class="subject-head" style="--c:${KIND_COLOR[s.kind] || "var(--brown)"}">
+      <div class="row"><h1>${esc(s.name)}</h1><span class="badge">${esc(s.kind)}</span>${saveButton("s:" + s.id, s.name)}</div>
+      <p class="meta">${total ? counts : "Nothing added yet"}</p>
     </header>
-    ${sections}`;
+    ${sections || noMatch()}`;
 }
 
-function renderNotFound(id) {
-  document.title = data.config.site.title;
-  app.innerHTML = `
-    <a class="back" href="#/"><span aria-hidden="true">‹</span> All subjects</a>
-    <header class="subject-head"><h1>Subject not found</h1></header>
-    <p class="status" style="margin-top:16px">There's no subject at “${esc(id)}”. Go back to all subjects and pick one from the list.</p>`;
+/* ---------- chrome: tabs, menus, footer ---------- */
+
+function currentRoute() {
+  const h = decodeURIComponent(location.hash.replace(/^#\/?/, "")).trim();
+  if (!h) return { view: "subjects" };
+  if (h.startsWith("s/")) return { view: "subject", id: h.slice(2) };
+  if (["files", "recent", "saved"].includes(h)) return { view: h };
+  if (subjectById(h)) return { view: "subject", id: h }; // old links
+  return { view: "missing", id: h };
 }
 
-function renderTitleBlock() {
-  const { site, subjects } = data.config;
-  const ready = subjects.reduce((n, s) => n + readyCount(s.id), 0);
-  const repo = site.repo || "";
-  const updated = data.manifest.generated ? formatDate(data.manifest.generated, true) : "—";
-  titleBlock.innerHTML = `
-    <div class="tb-cell full"><span class="tb-label">Project</span><span class="tb-value big">${esc(site.title)}</span></div>
-    <div class="tb-cell full"><span class="tb-label">For</span><span class="tb-value">${esc(site.subtitle || "")}</span></div>
-    <div class="tb-cell half"><span class="tb-label">Files ready</span><span class="tb-value">${ready} of ${subjects.length * TOTAL}</span></div>
-    <div class="tb-cell half"><span class="tb-label">Last built</span><span class="tb-value">${esc(updated)}</span></div>
-    ${
-      repo
-        ? `<div class="tb-cell full"><span class="tb-label">Source</span><span class="tb-value"><a href="${esc(repo)}">${esc(repo.replace(/^https?:\/\//, ""))}</a></span></div>`
-        : ""
-    }`;
+function placeScribble(animate) {
+  const nav = document.querySelector(".tabs");
+  const svg = $("scribble");
+  const active = nav.querySelector('.tab[aria-current="page"]');
+  if (!active) { svg.style.opacity = 0; return; }
+  const range = document.createRange();
+  range.selectNodeContents(active);
+  const r = range.getBoundingClientRect();
+  const n = nav.getBoundingClientRect();
+  const padX = Math.max(12, r.height * 0.75), padY = Math.max(6, r.height * 0.36);
+  Object.assign(svg.style, {
+    left: `${r.left - n.left - padX}px`,
+    top: `${r.top - n.top - padY}px`,
+    width: `${r.width + padX * 2}px`,
+    height: `${r.height + padY * 2}px`,
+    opacity: 1,
+  });
+  if (animate) { svg.classList.remove("draw"); void svg.getBoundingClientRect(); svg.classList.add("draw"); }
 }
 
-function route() {
-  if (!data) return;
-  const id = decodeURIComponent(location.hash.replace(/^#\/?/, "")).trim();
-  const animate = firstRender;
-  app.classList.toggle("animate", animate);
+function updateTabs(view) {
+  const tabView = view === "subject" || view === "missing" ? "subjects" : view;
+  document.querySelectorAll(".tab").forEach((t) => {
+    if (t.dataset.view === tabView) t.setAttribute("aria-current", "page");
+    else t.removeAttribute("aria-current");
+  });
+  placeScribble(state.lastView !== null && state.lastView !== tabView);
+  state.lastView = tabView;
+}
 
-  if (!id) renderHome();
-  else {
-    const subject = data.config.subjects.find((s) => s.id === id);
-    subject ? renderSubject(subject) : renderNotFound(id);
+function filterMenu(view) {
+  const useKinds = view === "subjects";
+  const opts = useKinds
+    ? [...new Set(subjects().map((s) => s.kind))].map((k) => ({ id: k, name: k, color: KIND_COLOR[k] }))
+    : TYPES.map((t) => ({ id: t.id, name: t.name, color: t.color }));
+  const set = useKinds ? state.kinds : state.types;
+  $("filter-menu").innerHTML =
+    `<p class="menu-title">${useKinds ? "Kind of subject" : "Kind of file"}</p>` +
+    opts.map((o) => `<button class="menu-item" type="button" role="menuitemcheckbox" aria-checked="${set.has(o.id)}" data-filter="${esc(o.id)}" data-set="${useKinds ? "kinds" : "types"}">
+      <span class="check">${ICON.check}</span><span class="swatch" style="--c:${o.color}"></span>${esc(o.name)}</button>`).join("") +
+    (set.size ? `<hr class="menu-sep"><button class="menu-item clear" type="button" data-clear-filters="${useKinds ? "kinds" : "types"}">Clear filters</button>` : "");
+  const c = $("filter-count");
+  c.hidden = !set.size;
+  c.textContent = set.size;
+}
+
+function sortMenu() {
+  $("sort-menu").innerHTML = `<p class="menu-title">Sort by</p>` + SORTS.map((s) =>
+    `<button class="menu-item radio" type="button" role="menuitemradio" aria-checked="${state.sort === s.id}" data-sort="${s.id}"><span class="check">${ICON.check}</span>${esc(s.name)}</button>`
+  ).join("");
+  $("sort-btn").setAttribute("aria-label", `Sort: ${SORTS.find((s) => s.id === state.sort).name}`);
+}
+
+function closeMenus(except) {
+  for (const [btn, menu] of [["filter-btn", "filter-menu"], ["sort-btn", "sort-menu"]]) {
+    if (btn === except) continue;
+    $(menu).hidden = true;
+    $(btn).setAttribute("aria-expanded", "false");
   }
+}
+function toggleMenu(btn, menu) {
+  const open = $(menu).hidden;
+  closeMenus(btn);
+  $(menu).hidden = !open;
+  $(btn).setAttribute("aria-expanded", String(open));
+}
 
-  if (!firstRender) {
+function renderFooter() {
+  const { site } = state.data.config;
+  const total = allFiles().length;
+  const built = state.data.manifest.generated ? formatDate(state.data.manifest.generated, true) : "";
+  $("foot").innerHTML = `<span>${esc(site.subtitle || "")} · ${plural(total, "file", "files")} · last updated ${esc(built)}</span>
+    <a href="${esc(site.repo)}">Source on GitHub</a>`;
+}
+
+/* ---------- render ---------- */
+
+function render({ fromRoute = false } = {}) {
+  if (!state.data) return;
+  const route = currentRoute();
+  updateTabs(route.view);
+  filterMenu(route.view === "subjects" ? "subjects" : "files");
+  sortMenu();
+
+  if (route.view === "subjects") { document.title = state.data.config.site.title; renderSubjects(); }
+  else if (route.view === "files") { document.title = `Files · ${state.data.config.site.title}`; renderFileList("files"); }
+  else if (route.view === "recent") { document.title = `Recent · ${state.data.config.site.title}`; renderFileList("recent"); }
+  else if (route.view === "saved") { document.title = `Saved · ${state.data.config.site.title}`; renderSaved(); }
+  else if (route.view === "subject") {
+    const s = subjectById(route.id);
+    if (s) { document.title = `${s.name} · ${state.data.config.site.title}`; renderSubject(s); }
+    else renderMissing(route.id);
+  } else renderMissing(route.id);
+
+  if (fromRoute) {
     window.scrollTo(0, 0);
     app.focus({ preventScroll: true });
   }
-  firstRender = false;
 }
 
+function renderMissing(id) {
+  app.innerHTML = `<a class="back" href="#/">${ICON.back} All subjects</a>` +
+    emptyBox([`There's no page at “${esc(id)}”.`, `Go back to all subjects and pick one from the list.`]);
+}
+
+/* ---------- events ---------- */
+
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-save],[data-expand],[data-clear],[data-filter],[data-clear-filters],[data-sort]");
+  if (!t) {
+    if (!e.target.closest(".menu-wrap")) closeMenus();
+    return;
+  }
+  if (t.dataset.save) {
+    e.preventDefault();
+    toggleSaved(t.dataset.save);
+    const on = state.saved.has(t.dataset.save);
+    document.querySelectorAll(`[data-save="${CSS.escape(t.dataset.save)}"]`).forEach((b) => {
+      b.setAttribute("aria-pressed", String(on));
+      b.setAttribute("aria-label", b.getAttribute("aria-label").replace(/^(Save|Remove)/, on ? "Remove" : "Save"));
+    });
+    if (currentRoute().view === "saved") render();
+  } else if (t.dataset.expand) {
+    state.expanded.add(t.dataset.expand);
+    render();
+  } else if (t.hasAttribute("data-clear")) {
+    state.query = ""; qInput.value = ""; state.types.clear(); state.kinds.clear();
+    render();
+  } else if (t.dataset.filter) {
+    const set = state[t.dataset.set];
+    set.has(t.dataset.filter) ? set.delete(t.dataset.filter) : set.add(t.dataset.filter);
+    render();
+    $("filter-menu").hidden = false;
+  } else if (t.dataset.clearFilters) {
+    state[t.dataset.clearFilters].clear();
+    render();
+  } else if (t.dataset.sort) {
+    state.sort = t.dataset.sort;
+    store.set("endsems:sort", state.sort);
+    closeMenus();
+    render();
+  }
+});
+
+$("filter-btn").addEventListener("click", () => toggleMenu("filter-btn", "filter-menu"));
+$("sort-btn").addEventListener("click", () => toggleMenu("sort-btn", "sort-menu"));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeMenus();
+  if (e.key === "/" && document.activeElement !== qInput && !e.target.closest("input,textarea")) { e.preventDefault(); qInput.focus(); }
+});
+
+qInput.addEventListener("input", () => { state.query = qInput.value.trim(); render(); });
+
+$("about-btn").addEventListener("click", () => {
+  const d = $("about");
+  if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
+});
+
+const toTop = $("to-top");
+toTop.addEventListener("click", () => { window.scrollTo({ top: 0 }); qInput.focus({ preventScroll: true }); });
+window.addEventListener("scroll", () => { toTop.hidden = window.scrollY < 500; }, { passive: true });
+window.addEventListener("resize", () => placeScribble(false));
+window.addEventListener("hashchange", () => render({ fromRoute: true }));
+
+/* ---------- load ---------- */
+
 async function load() {
+  state.sort = SORTS.some((s) => s.id === store.get("endsems:sort")) ? store.get("endsems:sort") : "default";
   try {
     const [config, manifest] = await Promise.all(
       ["subjects.json", "manifest.json"].map((u) =>
@@ -239,14 +472,20 @@ async function load() {
         })
       )
     );
-    data = { config, manifest };
-    renderTitleBlock();
-    route();
+    state.data = { config, manifest };
+    if (config.site?.repo) $("repo-link").href = config.site.repo;
+    renderFooter();
+    render();
+    if (document.fonts?.ready) document.fonts.ready.then(() => placeScribble(false));
   } catch (err) {
     console.error(err);
     app.innerHTML = `<p class="status">The file list didn't load. If you opened index.html straight from your computer, open the site through its GitHub Pages link instead, then reload.</p>`;
   }
 }
 
-window.addEventListener("hashchange", route);
+const mq = window.matchMedia("(max-width: 640px)");
+const setPlaceholder = () => { qInput.placeholder = mq.matches ? "Search" : "Search subjects, notes, topics"; };
+mq.addEventListener?.("change", setPlaceholder);
+setPlaceholder();
+
 load();

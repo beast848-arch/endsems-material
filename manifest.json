@@ -1,9 +1,87 @@
 {
-  "generated": "2026-10-22T15:12:32+00:00",
+  "generated": "2026-10-22T15:51:24+00:00",
   "subjects": {
     "concrete-technology": {
       "pyq-solutions": [],
-      "notes": [],
+      "notes": [
+        {
+          "title": "Cement: history and production",
+          "file": "materials/concrete-technology/notes/module-1a-cement-history-and-production.pdf",
+          "size": 200384,
+          "updated": "2026-10-22T15:49:51+00:00",
+          "pages": 13,
+          "label": "Module 1a",
+          "tags": [
+            "History of cement",
+            "Raw materials",
+            "Wet vs dry process",
+            "Preheaters and precalciners",
+            "Rotary kiln",
+            "Kiln reactions",
+            "Clinker cooling",
+            "Intergrinding with gypsum",
+            "Quality control (LSF, SR, AR)"
+          ]
+        },
+        {
+          "title": "Cement composition and hydration",
+          "file": "materials/concrete-technology/notes/module-1b-cement-composition-and-hydration.pdf",
+          "size": 196015,
+          "updated": "2026-10-22T15:49:51+00:00",
+          "pages": 13,
+          "label": "Module 1b",
+          "tags": [
+            "Oxide composition",
+            "Bogue equations",
+            "Clinker phases",
+            "Heat of hydration",
+            "Heat evolution curve",
+            "Hydration reactions",
+            "Ettringite and monosulphate",
+            "Pores and water in paste",
+            "Factors affecting hydration"
+          ]
+        },
+        {
+          "title": "Testing of cement and types of cement",
+          "file": "materials/concrete-technology/notes/module-1c-testing-and-types-of-cement.pdf",
+          "size": 159253,
+          "updated": "2026-10-22T15:49:51+00:00",
+          "pages": 13,
+          "label": "Module 1c",
+          "tags": [
+            "Fineness (Blaine)",
+            "Standard consistency",
+            "Setting time (Vicat)",
+            "Soundness (Le Chatelier, autoclave)",
+            "Strength of cement",
+            "ASTM types I–V",
+            "Blended cements",
+            "IS codes for cement"
+          ]
+        },
+        {
+          "title": "Aggregates",
+          "file": "materials/concrete-technology/notes/module-2-aggregates.pdf",
+          "size": 214453,
+          "updated": "2026-10-22T15:49:51+00:00",
+          "pages": 17,
+          "label": "Module 2",
+          "tags": [
+            "Classification",
+            "Shape and texture",
+            "Crushing, impact, abrasion",
+            "Specific gravity",
+            "Bulk density",
+            "Moisture states",
+            "Bulking of sand",
+            "Deleterious substances",
+            "Sieve analysis",
+            "Fineness modulus",
+            "Types of grading"
+          ]
+        }
+      ],
       "model-papers": []
     },
     "hydraulics-fluid-machinery": {

@@ -3,25 +3,87 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Endsems material</title>
+  <title>Endsems Material</title>
   <meta name="description" content="PYQ solutions, notes and model papers for our end-semester exams.">
-  <meta name="theme-color" content="#F5F7FA" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0D2744" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#171614" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap">
   <link rel="stylesheet" href="assets/style.css">
   <script src="assets/app.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#app">Skip to content</a>
-  <div class="sheet">
+
+  <div class="wrap">
+    <header class="masthead">
+      <a class="site-title" href="#/">Endsems Material</a>
+      <div class="head-actions">
+        <button class="icon-btn" id="about-btn" type="button" aria-label="How to add files" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r="0.6" class="dot"/></svg>
+        </button>
+        <a class="icon-btn" id="repo-link" href="https://github.com/beast848-arch/endsems-material" aria-label="Open the GitHub repository">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4 1.4-4-2-6-2.5M15 21v-3.4a3 3 0 0 0-.8-2.3c2.8-.3 5.8-1.4 5.8-6.2a4.8 4.8 0 0 0-1.3-3.3 4.5 4.5 0 0 0-.1-3.3s-1.1-.3-3.5 1.3a12 12 0 0 0-6.2 0C6.5 2.2 5.4 2.5 5.4 2.5a4.5 4.5 0 0 0-.1 3.3A4.8 4.8 0 0 0 4 9.1c0 4.8 3 5.9 5.8 6.2a3 3 0 0 0-.8 2.3V21"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Views">
+      <a class="tab" href="#/" data-view="subjects">Subjects</a><span class="sep">,</span>
+      <a class="tab" href="#/files" data-view="files">Files</a><span class="sep">,</span>
+      <a class="tab" href="#/recent" data-view="recent">Recent</a><span class="sep">,</span>
+      <a class="tab" href="#/saved" data-view="saved">Saved</a>
+      <svg class="scribble" id="scribble" viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M14 34 C 8 16, 70 6, 128 8 C 182 10, 198 26, 186 42 C 172 56, 90 58, 46 52 C 14 48, 2 36, 22 18 C 30 12, 44 9, 60 8"/>
+      </svg>
+    </nav>
+
+    <div class="toolbar">
+      <label class="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+        <span class="visually-hidden">Search</span>
+        <input id="q" type="search" placeholder="Search subjects, notes, topics" autocomplete="off" spellcheck="false">
+      </label>
+      <div class="tools">
+        <div class="menu-wrap">
+          <button class="tool-btn" id="filter-btn" type="button" aria-expanded="false" aria-controls="filter-menu">
+            <span>Filters</span><span class="count" id="filter-count" hidden></span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="menu" id="filter-menu" hidden></div>
+        </div>
+        <div class="menu-wrap">
+          <button class="icon-btn" id="sort-btn" type="button" aria-label="Sort" aria-expanded="false" aria-controls="sort-menu">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h11M3 11h8M3 16h5M18 4v16M15 17l3 3 3-3"/></svg>
+          </button>
+          <div class="menu" id="sort-menu" hidden></div>
+        </div>
+      </div>
+    </div>
+
     <main id="app" tabindex="-1">
       <p class="status">Loading the file list…</p>
     </main>
-    <footer class="title-block" id="title-block" aria-label="About this site"></footer>
+
+    <footer class="foot" id="foot"></footer>
   </div>
+
+  <button class="to-top" id="to-top" type="button" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    Back to top
+  </button>
+
+  <dialog class="about" id="about">
+    <form method="dialog">
+      <h2>How this works</h2>
+      <p>Each subject has three kinds of files: <b>PYQ solutions</b>, <b>Notes</b> and <b>Model papers</b>. Click a card to open the PDF. Use the bookmark on any card to keep it under <b>Saved</b> on this device.</p>
+      <p>To add a PDF, open the repository on GitHub, go to <code>materials/&lt;subject&gt;/&lt;notes | pyq-solutions | model-papers&gt;</code>, choose <b>Add file → Upload files</b>, and commit. It shows up here within a couple of minutes.</p>
+      <button class="tool-btn" value="close">Close</button>
+    </form>
+  </dialog>
+
   <noscript><p class="status">This site needs JavaScript to list the files. Turn it on and reload.</p></noscript>
 </body>
 </html>
