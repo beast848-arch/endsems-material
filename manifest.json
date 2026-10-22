@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-22T16:04:15+00:00",
+  "generated": "2026-10-22T18:45:50+00:00",
   "subjects": {
     "concrete-technology": {
       "pyq-solutions": [],
@@ -8,7 +8,7 @@
           "title": "Cement: history and production",
           "file": "materials/concrete-technology/notes/module-1a-cement-history-and-production.pdf",
           "size": 200526,
-          "updated": "2026-10-22T15:51:24+00:00",
+          "updated": "2026-10-22T16:04:15+00:00",
           "pages": 13,
           "label": "Module 1a",
           "tags": [
@@ -27,7 +27,7 @@
           "title": "Cement composition and hydration",
           "file": "materials/concrete-technology/notes/module-1b-cement-composition-and-hydration.pdf",
           "size": 196732,
-          "updated": "2026-10-22T15:51:24+00:00",
+          "updated": "2026-10-22T16:04:15+00:00",
           "pages": 13,
           "label": "Module 1b",
           "tags": [
@@ -46,7 +46,7 @@
           "title": "Testing of cement and types of cement",
           "file": "materials/concrete-technology/notes/module-1c-testing-and-types-of-cement.pdf",
           "size": 158715,
-          "updated": "2026-10-22T15:51:24+00:00",
+          "updated": "2026-10-22T16:04:15+00:00",
           "pages": 12,
           "label": "Module 1c",
           "tags": [
@@ -64,7 +64,7 @@
           "title": "Aggregates",
           "file": "materials/concrete-technology/notes/module-2-aggregates.pdf",
           "size": 214632,
-          "updated": "2026-10-22T15:51:24+00:00",
+          "updated": "2026-10-22T16:04:15+00:00",
           "pages": 17,
           "label": "Module 2",
           "tags": [
@@ -85,7 +85,7 @@
           "title": "Water, chemical admixtures and mineral admixtures",
           "file": "materials/concrete-technology/notes/module-3-water-and-admixtures.pdf",
           "size": 276638,
-          "updated": "2026-10-22T16:02:01+00:00",
+          "updated": "2026-10-22T16:04:15+00:00",
           "pages": 24,
           "label": "Module 3",
           "tags": [
@@ -110,7 +110,7 @@
           "title": "Mix proportioning of concrete (IS 10262, HSC and ACI methods)",
           "file": "materials/concrete-technology/notes/module-4-mix-proportioning.pdf",
           "size": 252615,
-          "updated": "2026-10-22T16:02:01+00:00",
+          "updated": "2026-10-22T16:04:15+00:00",
           "pages": 25,
           "label": "Module 4",
           "tags": [
@@ -148,6 +148,53 @@
             "Compaction methods",
             "Vibrators",
             "Defects of under- and over-vibration"
+          ]
+        },
+        {
+          "title": "Fresh concrete: workability and its tests",
+          "file": "materials/concrete-technology/notes/module-6-fresh-concrete.pdf",
+          "size": 192026,
+          "updated": "2026-10-22T18:45:50+00:00",
+          "pages": 16,
+          "label": "Module 6",
+          "tags": [
+            "Workability",
+            "Strength vs density ratio",
+            "Factors affecting workability",
+            "Segregation",
+            "Bleeding",
+            "Slump test",
+            "Compacting factor test",
+            "Vebe test",
+            "Flow table test",
+            "Kelly ball test",
+            "Comparison of tests",
+            "Density and yield of fresh concrete"
+          ]
+        },
+        {
+          "title": "Hardened concrete: strength, behaviour and testing",
+          "file": "materials/concrete-technology/notes/module-7-hardened-concrete.pdf",
+          "size": 239963,
+          "updated": "2026-10-22T18:45:50+00:00",
+          "pages": 20,
+          "label": "Module 7",
+          "tags": [
+            "Concrete as a composite",
+            "Elastic modulus and Poisson's ratio",
+            "Cement–aggregate bond",
+            "Factors affecting strength",
+            "Test variables",
+            "Stress–strain and cracking",
+            "Confinement and multiaxial stress",
+            "Post-peak behaviour",
+            "Toughness",
+            "Split tensile strength",
+            "Flexural strength",
+            "Fatigue",
+            "Steel–concrete bond",
+            "UPV test",
+            "Rebound hammer"
           ]
         }
       ],
