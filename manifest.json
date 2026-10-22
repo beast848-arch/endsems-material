@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-22T16:02:01+00:00",
+  "generated": "2026-10-22T16:04:15+00:00",
   "subjects": {
     "concrete-technology": {
       "pyq-solutions": [],
@@ -7,7 +7,7 @@
         {
           "title": "Cement: history and production",
           "file": "materials/concrete-technology/notes/module-1a-cement-history-and-production.pdf",
-          "size": 200384,
+          "size": 200526,
           "updated": "2026-10-22T15:51:24+00:00",
           "pages": 13,
           "label": "Module 1a",
@@ -26,7 +26,7 @@
         {
           "title": "Cement composition and hydration",
           "file": "materials/concrete-technology/notes/module-1b-cement-composition-and-hydration.pdf",
-          "size": 196015,
+          "size": 196732,
           "updated": "2026-10-22T15:51:24+00:00",
           "pages": 13,
           "label": "Module 1b",
@@ -45,9 +45,9 @@
         {
           "title": "Testing of cement and types of cement",
           "file": "materials/concrete-technology/notes/module-1c-testing-and-types-of-cement.pdf",
-          "size": 159253,
+          "size": 158715,
           "updated": "2026-10-22T15:51:24+00:00",
-          "pages": 13,
+          "pages": 12,
           "label": "Module 1c",
           "tags": [
             "Fineness (Blaine)",
@@ -63,7 +63,7 @@
         {
           "title": "Aggregates",
           "file": "materials/concrete-technology/notes/module-2-aggregates.pdf",
-          "size": 214453,
+          "size": 214632,
           "updated": "2026-10-22T15:51:24+00:00",
           "pages": 17,
           "label": "Module 2",
@@ -84,7 +84,7 @@
         {
           "title": "Water, chemical admixtures and mineral admixtures",
           "file": "materials/concrete-technology/notes/module-3-water-and-admixtures.pdf",
-          "size": 275885,
+          "size": 276638,
           "updated": "2026-10-22T16:02:01+00:00",
           "pages": 24,
           "label": "Module 3",
@@ -109,9 +109,9 @@
         {
           "title": "Mix proportioning of concrete (IS 10262, HSC and ACI methods)",
           "file": "materials/concrete-technology/notes/module-4-mix-proportioning.pdf",
-          "size": 252653,
+          "size": 252615,
           "updated": "2026-10-22T16:02:01+00:00",
-          "pages": 26,
+          "pages": 25,
           "label": "Module 4",
           "tags": [
             "Requirements of good concrete",
@@ -124,6 +124,30 @@
             "Exercise M35 solved",
             "ACI 211.1 method",
             "ACI worked examples"
+          ]
+        },
+        {
+          "title": "Batching, mixing, transporting, placing and compaction",
+          "file": "materials/concrete-technology/notes/module-5-batching-mixing-placing-compaction.pdf",
+          "size": 174983,
+          "updated": "2026-10-22T16:04:15+00:00",
+          "pages": 14,
+          "label": "Module 5",
+          "tags": [
+            "Batching and tolerances",
+            "Batching plant",
+            "Types of mixers",
+            "Uniformity of mixing",
+            "Transporting methods",
+            "Pumping",
+            "Ready-mixed concrete",
+            "Rules for placing",
+            "Slip-forming",
+            "Shotcrete",
+            "Tremie",
+            "Compaction methods",
+            "Vibrators",
+            "Defects of under- and over-vibration"
           ]
         }
       ],
